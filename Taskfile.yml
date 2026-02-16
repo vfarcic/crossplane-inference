@@ -1,0 +1,24 @@
+version: '3'
+
+vars:
+  TIMEOUT: 300s
+
+tasks:
+
+  cluster-create:
+    desc: Creates a KinD cluster and installs Crossplane.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - kind create cluster --config kind.yaml --kubeconfig ./kubeconfig.yaml
+      - helm repo add crossplane-stable https://charts.crossplane.io/stable
+      - helm repo update
+      - helm upgrade --install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace --wait
+
+  cluster-destroy:
+    desc: Destroys the KinD cluster.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - kind delete cluster
+      - rm -f ./kubeconfig.yaml

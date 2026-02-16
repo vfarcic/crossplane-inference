@@ -6,7 +6,9 @@
     "git@2.51.2",
     "vals@0.42.6",
     "kind@0.31.0",
-    "kubectl@1.33.4"
+    "kubectl@1.33.4",
+    "go-task@3.48.0",
+    "chainsaw@2.13.1"
   ],
   "shell": {
     "init_hook": [

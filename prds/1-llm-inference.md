@@ -163,7 +163,9 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 - [ ] GPU cluster provisioned via dot-kubernetes Crossplane Configuration
 
 ### Phase 1: Plain K8s Manifests
-- [ ] Create vllm-qwen.yaml, vllm-embedding.yaml, vllm-kimi.yaml (each with Deployment + Service + Ingress)
+- [x] Create vllm-qwen.yaml, vllm-embedding.yaml, vllm-kimi.yaml (each with VLLMRuntime CR + Ingress)
+- [ ] Install vLLM Production Stack operator on destination GPU cluster (manual)
+- [ ] Notify crossplane-kubernetes project to include vLLM Production Stack operator in GPU cluster provisioning
 - [ ] Test manifests on GPU cluster (start with lightweight Qwen model, then embedding, then Kimi)
 
 ### Phase 2: Crossplane Configuration

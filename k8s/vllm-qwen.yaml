@@ -1,0 +1,33 @@
+apiVersion: production-stack.vllm.ai/v1alpha1
+kind: VLLMRuntime
+metadata:
+  name: vllm-qwen
+spec:
+  model:
+    modelURL: Qwen/Qwen2.5-1.5B-Instruct
+    dtype: auto
+  vllmConfig:
+    gpuMemoryUtilization: "0.9"
+  deploymentConfig:
+    replicas: 1
+    resources:
+      cpu: "4"
+      memory: 8Gi
+      gpu: "1"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: vllm-qwen
+spec:
+  rules:
+  - host: qwen.127.0.0.1.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: vllm-qwen
+            port:
+              number: 8000

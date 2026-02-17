@@ -73,7 +73,7 @@ That's it. Three fields. The composition function handles everything else — co
 
 | Manifest | Model | GPU | CPU | Memory | Purpose |
 |----------|-------|-----|-----|--------|---------|
-| `vllm-qwen.yaml` | Qwen/Qwen2.5-1.5B-Instruct | 1 | 4 | 8Gi | Lightweight test |
+| `vllm-qwen.yaml` | Qwen/Qwen2.5-1.5B-Instruct | 1 | 2 | 8Gi | Lightweight test |
 | `vllm-embedding.yaml` | BAAI/bge-base-en-v1.5 | 1 | 2 | 4Gi | Embedding |
 | `vllm-kimi.yaml` | moonshotai/Kimi-K2.5 | 8 | 16 | 64Gi | Production |
 
@@ -93,7 +93,7 @@ The Python composition function maps user inputs to `VLLMRuntime` CR fields and 
 
 | Derived Field | Logic |
 |---------------|-------|
-| `cpu` | Scaled from GPU count (e.g., 1 GPU → 4 CPU, 8 GPU → 16 CPU) |
+| `cpu` | Scaled from GPU count (e.g., 1 GPU → 2 CPU, 8 GPU → 16 CPU) |
 | `memory` | Scaled from GPU count (e.g., 1 GPU → 8Gi, 8 GPU → 64Gi) |
 | `shmSize` | Scaled from GPU count |
 | `tensorParallelSize` | Set to GPU count when > 1 |
@@ -146,7 +146,7 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 
 | Risk | Impact | Mitigation |
 |------|--------|------------|
-| vLLM image version incompatibility | Manifests fail to start | Pin to specific version (v0.13.0) |
+| vLLM image version incompatibility | Manifests fail to start | Pin to lmcache/vllm-openai:v0.3.13 (operator requires lmcache fork) |
 | Python function SDK breaking changes | Function stops working | Pin SDK version in requirements.txt |
 | provider-kubernetes RBAC missing | Objects fail to create | Document RBAC setup in prerequisites |
 | Kimi K2.5 requires model-specific args | Won't work with generic Composition | Composition function handles model-specific args internally |
@@ -159,14 +159,14 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 - [x] Taskfile.yml with tasks for cluster lifecycle (e.g., `cluster-create`, `cluster-destroy`)
 - [x] KinD cluster as Crossplane control plane
 - [x] Crossplane installed via Helm
-- [ ] Cloud provider credentials configured (e.g., GCP)
-- [ ] GPU cluster provisioned via dot-kubernetes Crossplane Configuration
+- [x] Cloud provider credentials configured (e.g., GCP)
+- [x] GPU cluster provisioned via dot-kubernetes Crossplane Configuration
 
 ### Phase 1: Plain K8s Manifests
 - [x] Create vllm-qwen.yaml, vllm-embedding.yaml, vllm-kimi.yaml (each with VLLMRuntime CR + Ingress)
-- [ ] Install vLLM Production Stack operator on destination GPU cluster (manual)
+- [x] Install vLLM Production Stack operator on destination GPU cluster (manual)
 - [x] Notify crossplane-kubernetes project to include vLLM Production Stack operator in GPU cluster provisioning
-- [ ] Test manifests on GPU cluster (start with lightweight Qwen model, then embedding, then Kimi)
+- [x] Test manifests on GPU cluster (Qwen and embedding validated; Kimi requires 8-GPU cluster)
 
 ### Phase 2: Crossplane Configuration
 - [ ] Project scaffolding (Taskfile.yml, .chainsaw.yaml)
@@ -189,3 +189,6 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 | 2026-02-16 | Use vLLM Production Stack operator (`VLLMRuntime` CR) as underlying resource in Phase 2 instead of raw Deployments | Lighter than KServe (no Istio/Knative), tightest integration with vLLM, CRD fields map naturally to our needs. KServe's ops features (canary, autoscaling) are redundant when Crossplane owns orchestration | Phase 2 composition generates `VLLMRuntime` + `Ingress`; added operator as dependency; added alpha CRD risk |
 | 2026-02-16 | Minimal XRD surface — only `model`, `gpu`, `ingressHost` exposed to users | The Crossplane Configuration is a company-specific abstraction. End-users requesting inference should not need to understand vLLM internals. Everything else (CPU, memory, shm, tensor parallelism, probes, env vars) is derived by the composition function from the inputs | Reduced XRD from 11 fields to 3; composition function owns all heuristics and defaults; cleaner end-user experience |
 | 2026-02-16 | Add Phase 0 for shared scaffolding with Taskfile automation | Testing raw manifests on a GPU cluster requires Crossplane infrastructure (KinD + provider creds + dot-kubernetes). This is shared setup for all phases, not Phase 2 work. Taskfile automates repeatable operations so anyone can `task cluster-create` instead of following manual steps | Added Phase 0 with devbox.json, Taskfile.yml, KinD, Crossplane, provider creds, GPU cluster provisioning; moved devbox.json and Taskfile.yml out of Phase 2 |
+| 2026-02-17 | Use `lmcache/vllm-openai` image instead of official `vllm/vllm-openai` | The vLLM Production Stack operator hardcodes `/opt/venv/bin/vllm` as the entrypoint, which only exists in the lmcache fork. The official image places the binary at `/usr/local/bin/vllm` and is incompatible | All manifests use `lmcache/vllm-openai:v0.3.13`; composition function must use this image too |
+| 2026-02-17 | Reduce Qwen CPU from 4 to 2 | GKE `n1-standard-4` GPU nodes have ~3.9 allocatable CPUs after system pods; requesting 4 CPUs caused scheduling failures | Updated Qwen manifest and Models & Hardware table; composition function CPU heuristic adjusted (1 GPU → 2 CPU) |
+| 2026-02-17 | Move manifests from `k8s/` to `examples/` | All deployment examples (cluster claims, Crossplane config, vLLM manifests, docs) belong together; manifests are examples, not part of the Crossplane Configuration package built in Phase 2 | Consolidated all files under `examples/`; Ingress service port corrected from 8000 to 80 (operator creates service on port 80) |

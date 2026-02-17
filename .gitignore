@@ -1,2 +1,3 @@
 .env
 kubeconfig.yaml
+gpu-kubeconfig.yaml

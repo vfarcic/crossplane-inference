@@ -1,33 +1,36 @@
 apiVersion: production-stack.vllm.ai/v1alpha1
 kind: VLLMRuntime
 metadata:
-  name: vllm-embedding
+  name: vllm-qwen
 spec:
   model:
-    modelURL: BAAI/bge-base-en-v1.5
+    modelURL: Qwen/Qwen2.5-1.5B-Instruct
     dtype: auto
   vllmConfig:
     gpuMemoryUtilization: "0.9"
   deploymentConfig:
+    image:
+      registry: docker.io
+      name: lmcache/vllm-openai:v0.3.13
     replicas: 1
     resources:
       cpu: "2"
-      memory: 4Gi
+      memory: 8Gi
       gpu: "1"
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: vllm-embedding
+  name: vllm-qwen
 spec:
   rules:
-  - host: embedding.127.0.0.1.nip.io
+  - host: qwen.127.0.0.1.nip.io
     http:
       paths:
       - path: /
         pathType: Prefix
         backend:
           service:
-            name: vllm-embedding
+            name: vllm-qwen
             port:
-              number: 8000
+              number: 80

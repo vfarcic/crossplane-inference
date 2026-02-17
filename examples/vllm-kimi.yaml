@@ -15,6 +15,9 @@ spec:
     - name: VLLM_WORKER_MULTIPROC_METHOD
       value: spawn
   deploymentConfig:
+    image:
+      registry: docker.io
+      name: lmcache/vllm-openai:v0.3.13
     replicas: 1
     resources:
       cpu: "16"
@@ -36,4 +39,4 @@ spec:
           service:
             name: vllm-kimi
             port:
-              number: 8000
+              number: 80

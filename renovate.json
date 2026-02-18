@@ -1,0 +1,29 @@
+{
+    "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+    "extends": [
+        "config:recommended"
+    ],
+    "crossplane": {
+        "fileMatch": ["providers/.+\\.yaml$"]
+    },
+    "packageRules": [
+        {
+            "matchManagers": ["crossplane"],
+            "matchFileNames": ["providers/**"],
+            "groupName": "providers"
+        },
+        {
+            "matchFileNames": [
+                "devbox.json",
+                "devbox.lock"
+            ],
+            "automerge": true,
+            "commitMessageSuffix": " [skip ci]"
+        },
+        {
+            "matchManagers": ["github-actions"],
+            "automerge": true,
+            "commitMessageSuffix": " [skip ci]"
+        }
+    ]
+}

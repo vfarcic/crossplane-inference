@@ -6,9 +6,13 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 A Crossplane Configuration (`dot-inference`) that provides a minimal API for deploying LLM inference workloads on Kubernetes using vLLM Production Stack. Users specify `model`, `gpu`, `ingressHost`, and `providerConfigName` — the composition function derives everything else (CPU, memory, tensor parallelism, probes, env vars).
 
+## Environment
+
+We are already in a DevBox Shell when working. Do not prefix commands with `devbox run` or `devbox shell` — just run them directly.
+
 ## Commands
 
-All commands require `devbox shell` first. Tests output should be redirected to `./tmp/` for review.
+Tests output should be redirected to `./tmp/` for review.
 
 ```bash
 task cluster-create          # KinD + Crossplane + providers + functions + VLLMRuntime CRD

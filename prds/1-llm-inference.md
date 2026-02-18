@@ -177,7 +177,7 @@ Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/c
 - [ ] vLLM Production Stack operator installed on GPU cluster
 - [x] Example XRs for all scenarios
 - [x] Chainsaw e2e tests passing against KinD
-- [ ] Published to Upbound Marketplace
+- [x] Published to Upbound Marketplace
 
 ### Phase 3: Scale Discussion
 - [ ] Discussion: multi-region, multi-cluster, autoscaling, model caching, KV-cache routing, disaggregated prefill-decode, Gateway API Inference Extension, llm-d integration

@@ -18,6 +18,12 @@
       "[ -n \"$USE_VALS\" ] && eval \"$(vals env -export -f .env.vals.yaml)\" || true",
       "[ -f .env ] && source .env || true"
     ],
-    "scripts": {}
+    "scripts": {
+      "cluster-create":  ["task cluster-create"],
+      "cluster-destroy": ["task cluster-destroy"],
+      "package-publish": ["task package-publish"],
+      "test":            ["task test"],
+      "test-e2e":        ["task test-e2e"]
+    }
   }
 }

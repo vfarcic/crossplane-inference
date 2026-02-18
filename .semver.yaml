@@ -1,6 +1,4 @@
 alpha: 0
 beta: 0
-major: 0
-minor: 1
-patch: 0
-release: release
+rc: 0
+release: v0.1.0

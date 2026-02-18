@@ -1,0 +1,77 @@
+version: '3'
+
+vars:
+  TIMEOUT: 300s
+
+tasks:
+
+  cluster-create:
+    desc: Creates a KinD cluster, installs Crossplane, providers, and functions.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - kind create cluster --config kind.yaml --kubeconfig ./kubeconfig.yaml
+      - helm repo add crossplane-stable https://charts.crossplane.io/stable
+      - helm repo update
+      - helm upgrade --install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace --wait
+      - for f in providers/*.yaml; do kubectl apply --filename $f --server-side 2>/dev/null || true; done
+      - sleep 60
+      - kubectl wait --for=condition=healthy provider.pkg.crossplane.io --all --timeout={{.TIMEOUT}}
+      - kubectl wait --for=condition=healthy function.pkg.crossplane.io --all --timeout={{.TIMEOUT}}
+      - for f in providers/provider-config-*.yaml; do kubectl apply --filename $f; done
+      - kubectl apply --filename https://raw.githubusercontent.com/vllm-project/production-stack/main/operator/config/crd/bases/production-stack.vllm.ai_vllmruntimes.yaml
+
+  cluster-destroy:
+    desc: Destroys the KinD cluster.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - kind delete cluster
+      - rm -f ./kubeconfig.yaml
+
+  package-generate:
+    desc: Generates package/composition.yaml by embedding python/composition.py into the template.
+    cmds:
+      - python3 -c "tmpl=open('python/composition.yaml.tmpl').read();script=open('python/composition.py').read();indented=chr(10).join('        '+l if l.strip() else '' for l in script.splitlines());print(tmpl.replace('__PYTHON_SCRIPT__',indented.strip()))" > package/composition.yaml
+
+  package-apply:
+    desc: Applies XRD and Composition to the cluster.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - kubectl apply --filename package/definition.yaml
+      - sleep 1
+      - kubectl apply --filename package/composition.yaml
+
+  package-generate-apply:
+    desc: Generates and applies the package.
+    cmds:
+      - task: package-generate
+      - task: package-apply
+
+  package-publish:
+    desc: Builds and pushes the Configuration package.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - task: package-generate
+      - up login --token $UP_TOKEN
+      - up xpkg build --package-root package --name inference.xpkg
+      - up xpkg push --package package/inference.xpkg xpkg.upbound.io/$UP_ACCOUNT/dot-inference:$VERSION
+      - rm -f package/inference.xpkg
+
+  test-e2e:
+    desc: Runs Chainsaw e2e tests.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
+    cmds:
+      - task: package-generate-apply
+      - chainsaw test
+
+  test:
+    desc: Creates cluster, generates package, runs tests, destroys cluster.
+    cmds:
+      - task: cluster-create
+      - task: package-generate-apply
+      - chainsaw test
+      - task: cluster-destroy

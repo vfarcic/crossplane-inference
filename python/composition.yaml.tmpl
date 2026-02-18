@@ -1,0 +1,18 @@
+apiVersion: apiextensions.crossplane.io/v1
+kind: Composition
+metadata:
+  name: llm-inference
+spec:
+  compositeTypeRef:
+    apiVersion: inference.devopstoolkit.ai/v1alpha1
+    kind: LLMInference
+  mode: Pipeline
+  pipeline:
+  - step: compose-resources
+    functionRef:
+      name: crossplane-contrib-function-python
+    input:
+      apiVersion: python.fn.crossplane.io/v1beta1
+      kind: Script
+      script: |
+        __PYTHON_SCRIPT__

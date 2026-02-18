@@ -1,1 +1,9 @@
 .env
+kubeconfig.yaml
+gpu-kubeconfig.yaml
+gcp-creds.json
+gke_gcloud_auth_plugin_cache
+package/composition.yaml
+*.xpkg
+tmp/
+chainsaw-report.json

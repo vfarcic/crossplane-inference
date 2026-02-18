@@ -1,0 +1,9 @@
+apiVersion: inference.devopstoolkit.ai/v1alpha1
+kind: LLMInference
+metadata:
+  name: embedding
+spec:
+  model: BAAI/bge-base-en-v1.5
+  gpu: 1
+  ingressHost: embedding.127.0.0.1.nip.io
+  providerConfigName: gpu-cluster

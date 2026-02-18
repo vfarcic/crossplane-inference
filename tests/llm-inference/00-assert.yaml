@@ -1,0 +1,116 @@
+apiVersion: inference.devopstoolkit.ai/v1alpha1
+kind: LLMInference
+metadata:
+  name: test-qwen
+  namespace: ($namespace)
+spec:
+  model: Qwen/Qwen2.5-1.5B-Instruct
+  gpu: 1
+  ingressHost: qwen.127.0.0.1.nip.io
+  providerConfigName: incluster
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  labels:
+    crossplane.io/composite: test-qwen
+  ownerReferences:
+  - apiVersion: inference.devopstoolkit.ai/v1alpha1
+    kind: LLMInference
+    blockOwnerDeletion: true
+    controller: true
+spec:
+  providerConfigRef:
+    name: incluster
+    kind: ClusterProviderConfig
+  forProvider:
+    manifest:
+      apiVersion: production-stack.vllm.ai/v1alpha1
+      kind: VLLMRuntime
+      metadata:
+        name: test-qwen
+      spec:
+        model:
+          modelURL: Qwen/Qwen2.5-1.5B-Instruct
+          dtype: auto
+        vllmConfig:
+          gpuMemoryUtilization: "0.9"
+        deploymentConfig:
+          image:
+            registry: docker.io
+            name: lmcache/vllm-openai:v0.3.13
+          replicas: 1
+          resources:
+            cpu: "2"
+            memory: 8Gi
+            gpu: "1"
+---
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: Object
+metadata:
+  labels:
+    crossplane.io/composite: test-qwen
+  ownerReferences:
+  - apiVersion: inference.devopstoolkit.ai/v1alpha1
+    kind: LLMInference
+    blockOwnerDeletion: true
+    controller: true
+spec:
+  providerConfigRef:
+    name: incluster
+    kind: ClusterProviderConfig
+  forProvider:
+    manifest:
+      apiVersion: networking.k8s.io/v1
+      kind: Ingress
+      metadata:
+        name: test-qwen
+      spec:
+        rules:
+        - host: qwen.127.0.0.1.nip.io
+          http:
+            paths:
+            - path: /
+              pathType: Prefix
+              backend:
+                service:
+                  name: test-qwen
+                  port:
+                    number: 80
+---
+apiVersion: production-stack.vllm.ai/v1alpha1
+kind: VLLMRuntime
+metadata:
+  name: test-qwen
+spec:
+  model:
+    modelURL: Qwen/Qwen2.5-1.5B-Instruct
+    dtype: auto
+  vllmConfig:
+    gpuMemoryUtilization: "0.9"
+  deploymentConfig:
+    image:
+      registry: docker.io
+      name: lmcache/vllm-openai:v0.3.13
+    replicas: 1
+    resources:
+      cpu: "2"
+      memory: 8Gi
+      gpu: "1"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: test-qwen
+spec:
+  rules:
+  - host: qwen.127.0.0.1.nip.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: test-qwen
+            port:
+              number: 80

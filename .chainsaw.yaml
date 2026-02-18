@@ -6,9 +6,11 @@ metadata:
 spec:
   report:
     name: chainsaw-report
+  deletion:
+    propagation: Foreground
   timeouts:
     apply: 30s
     assert: 30s
-    cleanup: 10m0s
-    delete: 30s
+    cleanup: 1m0s
+    delete: 5m0s
     error: 2m0s

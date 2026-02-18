@@ -47,7 +47,7 @@ LLMInference XR (namespace-scoped, Crossplane v2 — no claims)
 
 ### Composed Resources
 
-The composition function generates `kubernetes.crossplane.io/v1alpha2` Object resources. Each Object wraps either a `VLLMRuntime` CR or an `Ingress`, with `providerConfigRef` pointing to the user-specified ProviderConfig (target cluster).
+The composition function generates `kubernetes.m.crossplane.io/v1alpha1` Object resources (namespace-scoped). Each Object wraps either a `VLLMRuntime` CR or an `Ingress`, with `providerConfigRef` pointing to a `ClusterProviderConfig` for the target cluster. Manifests inside Objects must include explicit `namespace`.
 
 ## Critical Details
 
@@ -57,4 +57,4 @@ The composition function generates `kubernetes.crossplane.io/v1alpha2` Object re
 - **function-python**: Generic Python engine (`xpkg.crossplane.io/crossplane-contrib/function-python`). Python code runs inline, not as a custom function image. Limited to stdlib + `crossplane.function` SDK
 - **GPU heuristics**: 1 GPU → 2 CPU/8Gi, 8 GPU → 16 CPU/64Gi. Tensor parallelism = GPU count when > 1. `VLLM_WORKER_MULTIPROC_METHOD=spawn` for multi-GPU
 - **Test cluster**: KinD with VLLMRuntime CRD installed (no operator). Tests verify resource creation, not actual vLLM deployment
-- **ProviderConfig**: `incluster` (InjectedIdentity) for testing. Examples use `gpu-cluster` for remote GPU clusters
+- **ProviderConfig**: `ClusterProviderConfig` named `incluster` (InjectedIdentity) at `kubernetes.m.crossplane.io/v1alpha1` for testing. Examples use `gpu-cluster` for remote GPU clusters

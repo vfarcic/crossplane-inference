@@ -105,10 +105,12 @@ The Python composition function maps user inputs to `VLLMRuntime` CR fields and 
 
 ### Composed Resources
 
-The Python composition function generates these Kubernetes resources from a single claim:
+The Python composition function generates `kubernetes.m.crossplane.io/v1alpha1` Object resources (namespace-scoped). Each Object wraps one of:
 
 1. **`VLLMRuntime` CR** (`production-stack.vllm.ai/v1alpha1`) — model, GPU, compute resources, vLLM args, env vars, probes. All fields derived from `model` + `gpu` inputs.
 2. **`Ingress`** (`networking.k8s.io/v1`) — conditional, only when `ingressHost` is provided.
+
+Objects use `providerConfigRef` with `kind: ClusterProviderConfig` to target the user-specified cluster. Manifests inside Objects include explicit `namespace` (from the XR) to satisfy provider-kubernetes requirements.
 
 ### Composition Function
 
@@ -169,12 +171,12 @@ Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/c
 
 ### Phase 2: Crossplane Configuration
 - [x] Project scaffolding (Taskfile.yml, .chainsaw.yaml)
-- [ ] Python composition function with unit tests
+- [x] Python composition function
 - [x] XRD, Composition, and Configuration manifest
 - [x] Provider package declarations
 - [ ] vLLM Production Stack operator installed on GPU cluster
 - [x] Example XRs for all scenarios
-- [ ] Chainsaw e2e tests passing against KinD
+- [x] Chainsaw e2e tests passing against KinD
 - [ ] Published to Upbound Marketplace
 
 ### Phase 3: Scale Discussion
@@ -194,3 +196,5 @@ Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/c
 | 2026-02-18 | Use `function-python` engine instead of custom function OCI image | Follow same pattern as crossplane-kubernetes with function-kcl: reference generic function engine, embed logic inline. No Dockerfile or separate function package needed | Eliminated function build/push workflow; Python code lives in `python/composition.py`, embedded into Composition YAML via `task package-generate` |
 | 2026-02-18 | Add `providerConfigName` as required XRD field | Composed resources (Object CRs) need to target a specific cluster via provider-kubernetes ProviderConfig. User must specify which cluster to deploy vLLM resources to | XRD has 4 fields (model, gpu, ingressHost, providerConfigName); examples use `gpu-cluster`; tests use `incluster` |
 | 2026-02-18 | Crossplane v2 — namespace-scoped XRs, no Claims | Crossplane v2 removes Claims; XRs are namespace-scoped directly via `scope: Namespaced` in XRD | Examples are `llm-*.yaml` (not `claim-*.yaml`); XRD uses `apiextensions.crossplane.io/v2` |
+| 2026-02-18 | Use namespace-scoped Objects (`kubernetes.m.crossplane.io/v1alpha1`) with `ClusterProviderConfig` | Namespace-scoped XRs (Crossplane v2) require namespace-scoped composed resources. Cluster-scoped Objects (`kubernetes.crossplane.io/v1alpha2`) cannot be owned by namespace-scoped XRs. `ClusterProviderConfig` (cluster-scoped) ensures accessibility from any namespace (e.g., random chainsaw test namespaces) | Composition generates `kubernetes.m.crossplane.io/v1alpha1` Objects; `providerConfigRef` includes `kind: ClusterProviderConfig`; manifests include explicit `namespace`; ProviderConfig changed to `ClusterProviderConfig` |
+| 2026-02-18 | Chainsaw Foreground deletion propagation | Without Foreground propagation, namespace deletion races Crossplane resource cleanup — Objects with finalizers block namespace teardown, causing stuck Terminating namespaces | `.chainsaw.yaml` uses `deletion.propagation: Foreground`; delete timeout set to 5m for Crossplane cascade; removed redundant cleanup scripts |

@@ -15,7 +15,7 @@ There is no simple, unified API to provision inference workloads across differen
 
 **Phase 1:** Plain Kubernetes YAML manifests for three vLLM scenarios, validated directly with `kubectl apply`.
 
-**Phase 2:** A Crossplane Configuration (`dot-inference`) with a custom Python composition function, published to the Upbound Marketplace. The composition generates a vLLM Production Stack `VLLMRuntime` CR plus an Ingress resource (and any future supporting resources). Users specify only what matters — model name, GPU count, and ingress host — via a single `LLMInference` custom resource at `inference.devopstoolkit.ai/v1alpha1`. All infrastructure complexity (shared memory, tensor parallelism, health probes, worker multiproc, HuggingFace tokens) is handled internally by the composition function based on the inputs.
+**Phase 2:** A Crossplane Configuration (`dot-inference`) with an inline Python composition function (via `function-python` engine), published to the Upbound Marketplace. The composition generates `provider-kubernetes` Object resources wrapping a `VLLMRuntime` CR and an Ingress, deployed to a user-specified target cluster. Users specify only what matters — model name, GPU count, ingress host, and target cluster ProviderConfig — via a single `LLMInference` custom resource at `inference.devopstoolkit.ai/v1alpha1`. All infrastructure complexity (shared memory, tensor parallelism, health probes, worker multiproc, HuggingFace tokens) is handled internally by the composition function based on the inputs.
 
 All scenarios use **vLLM** as the inference engine, with the [vLLM Production Stack operator](https://github.com/vllm-project/production-stack) managing runtime lifecycle in Phase 2.
 
@@ -28,35 +28,34 @@ All scenarios use **vLLM** as the inference engine, with the [vLLM Production St
 4. Repeat for each model/environment
 
 ### With this feature:
-1. Apply a plain manifest OR create a Crossplane claim with model name and GPU count
+1. Apply a plain manifest OR create a Crossplane XR with model name and GPU count
 2. Inference endpoint is ready
 
-**Crossplane claim example:**
+**Crossplane XR example:**
 ```yaml
 apiVersion: inference.devopstoolkit.ai/v1alpha1
 kind: LLMInference
 metadata:
   name: my-llm
 spec:
-  parameters:
-    model: "Qwen/Qwen2.5-1.5B-Instruct"
-    gpu: 1
-    ingressHost: "qwen.127.0.0.1.nip.io"
+  model: "Qwen/Qwen2.5-1.5B-Instruct"
+  gpu: 1
+  ingressHost: "qwen.127.0.0.1.nip.io"
+  providerConfigName: "gpu-cluster"
 ```
-That's it. Three fields. The composition function handles everything else — compute sizing, shared memory, tensor parallelism, health probes, env vars, and Ingress routing.
+That's it. Four fields. The composition function handles everything else — compute sizing, shared memory, tensor parallelism, health probes, env vars, and Ingress routing.
 
 ## Scope
 
 ### In Scope
 - Plain K8s manifests for 3 vLLM deployments (Qwen2.5-1.5B, bge-base-en-v1.5, Kimi K2.5)
 - Ingress resources for external access using nip.io domains (e.g., `qwen.127.0.0.1.nip.io`)
-- Custom Python composition function (built as OCI image)
-- Crossplane XRD defining `LLMInference` API
-- Crossplane Composition referencing the Python function
+- Inline Python composition function via `function-python` engine
+- Crossplane XRD defining `LLMInference` API (namespace-scoped, Crossplane v2)
+- Crossplane Composition with embedded Python script
 - Configuration package manifest for Upbound Marketplace
 - Chainsaw e2e tests against KinD (no cloud provider costs)
-- Python unit tests for the composition function
-- Example claims for each scenario
+- Example XRs for each scenario
 - KinD cluster as Crossplane control plane for testing
 - Documentation of dot-kubernetes integration for GPU cluster provisioning
 
@@ -86,6 +85,7 @@ The XRD deliberately exposes a minimal surface. End-users (developers requesting
 | `model` | string | yes | - | HuggingFace model identifier |
 | `gpu` | integer | no | 1 | Number of GPUs |
 | `ingressHost` | string | no | - | Ingress hostname for external access (e.g., `qwen.127.0.0.1.nip.io`) |
+| `providerConfigName` | string | yes | - | Name of the `kubernetes.crossplane.io` ProviderConfig for the target cluster |
 
 ### Composition Function Internals (Derived from Inputs)
 
@@ -112,7 +112,7 @@ The Python composition function generates these Kubernetes resources from a sing
 
 ### Composition Function
 
-Custom Python function using `function-sdk-python`, built as OCI image. Acts as the translation layer between the minimal user-facing API and the underlying vLLM Production Stack + Ingress resources. Key responsibilities:
+Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/crossplane-contrib/function-python`). Source lives in `python/composition.py` and is embedded into the Composition YAML via `task package-generate`. Acts as the translation layer between the minimal user-facing API and the underlying vLLM Production Stack + Ingress resources. Key responsibilities:
 - Map `model` + `gpu` to full `VLLMRuntime` spec (compute, parallelism, probes, env vars)
 - Apply sensible defaults and scaling heuristics (more GPUs → more memory, longer probe delays, tensor parallelism enabled)
 - Conditionally inject HuggingFace token for gated models
@@ -120,8 +120,7 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 
 ### Testing Strategy
 
-- **Python unit tests**: Test function logic without a cluster
-- **Chainsaw e2e tests**: Verify composed Object resources against KinD (no GPU nodes, no cost)
+- **Chainsaw e2e tests**: Verify composed Object resources (and underlying VLLMRuntime + Ingress) against KinD (no GPU nodes, no cost)
 - **Manual testing**: Plain manifests on a real GPU cluster
 
 ## Dependencies
@@ -169,12 +168,12 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 - [x] Test manifests on GPU cluster (Qwen and embedding validated; Kimi requires 8-GPU cluster)
 
 ### Phase 2: Crossplane Configuration
-- [ ] Project scaffolding (Taskfile.yml, .chainsaw.yaml)
+- [x] Project scaffolding (Taskfile.yml, .chainsaw.yaml)
 - [ ] Python composition function with unit tests
-- [ ] XRD, Composition, and Configuration manifest
-- [ ] Provider package declarations
+- [x] XRD, Composition, and Configuration manifest
+- [x] Provider package declarations
 - [ ] vLLM Production Stack operator installed on GPU cluster
-- [ ] Example claims for all scenarios
+- [x] Example XRs for all scenarios
 - [ ] Chainsaw e2e tests passing against KinD
 - [ ] Published to Upbound Marketplace
 
@@ -192,3 +191,6 @@ Custom Python function using `function-sdk-python`, built as OCI image. Acts as 
 | 2026-02-17 | Use `lmcache/vllm-openai` image instead of official `vllm/vllm-openai` | The vLLM Production Stack operator hardcodes `/opt/venv/bin/vllm` as the entrypoint, which only exists in the lmcache fork. The official image places the binary at `/usr/local/bin/vllm` and is incompatible | All manifests use `lmcache/vllm-openai:v0.3.13`; composition function must use this image too |
 | 2026-02-17 | Reduce Qwen CPU from 4 to 2 | GKE `n1-standard-4` GPU nodes have ~3.9 allocatable CPUs after system pods; requesting 4 CPUs caused scheduling failures | Updated Qwen manifest and Models & Hardware table; composition function CPU heuristic adjusted (1 GPU → 2 CPU) |
 | 2026-02-17 | Move manifests from `k8s/` to `examples/` | All deployment examples (cluster claims, Crossplane config, vLLM manifests, docs) belong together; manifests are examples, not part of the Crossplane Configuration package built in Phase 2 | Consolidated all files under `examples/`; Ingress service port corrected from 8000 to 80 (operator creates service on port 80) |
+| 2026-02-18 | Use `function-python` engine instead of custom function OCI image | Follow same pattern as crossplane-kubernetes with function-kcl: reference generic function engine, embed logic inline. No Dockerfile or separate function package needed | Eliminated function build/push workflow; Python code lives in `python/composition.py`, embedded into Composition YAML via `task package-generate` |
+| 2026-02-18 | Add `providerConfigName` as required XRD field | Composed resources (Object CRs) need to target a specific cluster via provider-kubernetes ProviderConfig. User must specify which cluster to deploy vLLM resources to | XRD has 4 fields (model, gpu, ingressHost, providerConfigName); examples use `gpu-cluster`; tests use `incluster` |
+| 2026-02-18 | Crossplane v2 — namespace-scoped XRs, no Claims | Crossplane v2 removes Claims; XRs are namespace-scoped directly via `scope: Namespaced` in XRD | Examples are `llm-*.yaml` (not `claim-*.yaml`); XRD uses `apiextensions.crossplane.io/v2` |

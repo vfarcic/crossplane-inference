@@ -1,0 +1,18 @@
+apiVersion: meta.pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: dot-inference
+  annotations:
+    meta.crossplane.io/maintainer: Viktor Farcic (@vfarcic)
+    meta.crossplane.io/source: github.com/vfarcic/crossplane-inference
+    meta.crossplane.io/license: MIT
+    meta.crossplane.io/description: LLM inference on Kubernetes with vLLM and Crossplane
+    meta.crossplane.io/readme: A Configuration package that defines an LLMInference type for deploying LLM models using vLLM Production Stack. Supports generative and embedding models with automatic GPU scaling, tensor parallelism, and Ingress routing.
+spec:
+  crossplane:
+    version: '>=v2.0.0'
+  dependsOn:
+  - provider: xpkg.crossplane.io/crossplane-contrib/provider-kubernetes
+    version: '>=v1.2.0'
+  - function: xpkg.crossplane.io/crossplane-contrib/function-python
+    version: '>=v0.4.0'

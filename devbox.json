@@ -8,7 +8,8 @@
     "kind@0.31.0",
     "kubectl@1.33.4",
     "go-task@3.48.0",
-    "chainsaw@2.13.1"
+    "kyverno-chainsaw@0.2.14",
+    "python3@3.12.8"
   ],
   "shell": {
     "init_hook": [

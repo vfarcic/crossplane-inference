@@ -1,0 +1,16 @@
+apiVersion: chainsaw.kyverno.io/v1alpha1
+kind: Test
+metadata:
+  name: llm-inference
+spec:
+  steps:
+    - try:
+        - apply:
+            file: 00-install.yaml
+        - assert:
+            file: 00-assert.yaml
+      cleanup:
+        - script:
+            timeout: 2m
+            content: |
+              kubectl delete llminference.inference.devopstoolkit.ai --all -n $NAMESPACE --timeout=60s || true

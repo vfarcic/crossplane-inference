@@ -1,0 +1,37 @@
+apiVersion: apiextensions.crossplane.io/v2
+kind: CompositeResourceDefinition
+metadata:
+  name: llminferences.inference.devopstoolkit.ai
+spec:
+  group: inference.devopstoolkit.ai
+  scope: Namespaced
+  names:
+    kind: LLMInference
+    plural: llminferences
+  versions:
+  - name: v1alpha1
+    referenceable: true
+    schema:
+      openAPIV3Schema:
+        properties:
+          spec:
+            properties:
+              model:
+                description: HuggingFace model identifier (e.g., Qwen/Qwen2.5-1.5B-Instruct).
+                type: string
+              gpu:
+                description: Number of GPUs. Drives compute sizing, tensor parallelism, and probe timing.
+                type: integer
+                default: 1
+              ingressHost:
+                description: Ingress hostname for external access (e.g., qwen.127.0.0.1.nip.io). Omit to skip Ingress creation.
+                type: string
+              providerConfigName:
+                description: Name of the kubernetes.crossplane.io ProviderConfig for the target cluster where Object resources will be created.
+                type: string
+            required:
+            - model
+            - providerConfigName
+            type: object
+        type: object
+    served: true

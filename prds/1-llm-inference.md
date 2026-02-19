@@ -200,7 +200,7 @@ Step-by-step documented walkthrough that validates the entire pipeline on real i
 - [x] Document teardown steps
 
 ### Phase 4: Scale Discussion
-- [ ] Discussion: multi-region, multi-cluster, autoscaling, model caching, KV-cache routing, disaggregated prefill-decode, Gateway API Inference Extension, llm-d integration
+- [x] Discussion: multi-region, multi-cluster, autoscaling, model caching, KV-cache routing, disaggregated prefill-decode, Gateway API Inference Extension, llm-d integration
 
 ## Decision Log
 
@@ -237,3 +237,4 @@ Step-by-step documented walkthrough that validates the entire pipeline on real i
 | 2026-02-19 | XR readiness is SuccessfulCreate, not model readiness | provider-kubernetes Object default readiness policy is `SuccessfulCreate` — Object is ready when the resource is created, not when the model finishes loading. VLLMRuntime CRD has no `conditions` field for `DeriveFromObject` to check. XR shows Ready before the vLLM pod is operational | Added model readiness poll loop (`curl /v1/models`) to README after `kubectl wait llminference`; true end-to-end readiness requires upstream VLLMRuntime CRD changes |
 | 2026-02-19 | Add README.md with full quickstart walkthrough | End-to-end documentation: control plane setup, GCP credentials, GPU cluster provisioning via dot-kubernetes, inference deployment, validation, and cleanup. Includes LoadBalancer IP wait loop and model readiness poll | Created `README.md` at repo root; validates Phase 3 walkthrough steps |
 | 2026-02-19 | README cleanup: wait for managed resources after cluster deletion | XR deletion completes when composed resources are removed, but managed resources (GKE cluster, node pools) may still be deleting in the cloud. Added `kubectl get managed` poll loop after cluster XR wait to ensure all cloud resources are fully deleted before proceeding | Works across GCP, AWS, and Azure; added `kubectl wait` for LLMInference deletion too |
+| 2026-02-19 | Phase 4 scale discussion → 6 follow-up PRDs | Researched all Phase 4 topics (model caching, autoscaling, Gateway API Inference Extension, KV-cache routing, multi-cluster, llm-d/P-D disaggregation) and created individual PRDs (#2-#7) as discussion starters rather than implementation plans. Each PRD captures ecosystem state, trade-offs, open questions, and cross-references to related PRDs | Created `prds/2-model-caching.md` through `prds/7-llm-d.md` with GitHub issues; PRD #1 Phase 4 complete; future work tracked independently per PRD |

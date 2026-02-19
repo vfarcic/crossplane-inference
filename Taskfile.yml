@@ -14,7 +14,7 @@ tasks:
       - helm repo add crossplane-stable https://charts.crossplane.io/stable
       - helm repo update
       - helm upgrade --install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace --wait
-      - for f in providers/*.yaml; do [ "$(basename "$f")" = "dot-kubernetes.yaml" ] && continue; kubectl apply --filename "$f" --server-side || echo "WARNING: kubectl apply failed for $f, continuing..."; done
+      - for f in providers/*.yaml; do [ "$(basename $f)" = "dot-kubernetes.yaml" ] && continue; kubectl apply --filename $f --server-side || echo "WARNING - apply failed for $f, continuing"; done
       - sleep 60
       - kubectl wait --for=condition=healthy provider.pkg.crossplane.io --all --timeout={{.TIMEOUT}}
       - kubectl wait --for=condition=healthy function.pkg.crossplane.io --all --timeout={{.TIMEOUT}}

@@ -6,4 +6,5 @@ spec:
   model: Qwen/Qwen2.5-1.5B-Instruct
   gpu: 1
   ingressHost: qwen.127.0.0.1.nip.io
-  providerConfigName: gpu-cluster
+  providerConfigName: inference-small
+  targetNamespace: dev

@@ -196,7 +196,7 @@ Step-by-step documented walkthrough that validates the entire pipeline on real i
 - [x] Use crossplane-kubernetes to provision a GPU cluster (GKE)
 - [x] Install vLLM Production Stack operator on the GPU cluster
 - [x] Deploy an inference workload using the dot-inference LLMInference XR
-- [ ] Validate inference endpoint is serving requests
+- [x] Validate inference endpoint is serving requests
 - [x] Document teardown steps
 
 ### Phase 4: Scale Discussion
@@ -236,3 +236,4 @@ Step-by-step documented walkthrough that validates the entire pipeline on real i
 | 2026-02-19 | function-pythonic: use dot notation, not `.update()` | `resource.spec.update({...})` creates a field called `update` on `spec`, not a method call. function-pythonic uses dot notation for all field assignment (`vllm.spec.forProvider.manifest.kind = 'VLLMRuntime'`). Array indexing via `[0]` is supported | Rewrote `python/composition.py` using dot notation; all Chainsaw tests pass; `autoReady` resolves the XR readiness issue that was unresolved with function-python |
 | 2026-02-19 | XR readiness is SuccessfulCreate, not model readiness | provider-kubernetes Object default readiness policy is `SuccessfulCreate` — Object is ready when the resource is created, not when the model finishes loading. VLLMRuntime CRD has no `conditions` field for `DeriveFromObject` to check. XR shows Ready before the vLLM pod is operational | Added model readiness poll loop (`curl /v1/models`) to README after `kubectl wait llminference`; true end-to-end readiness requires upstream VLLMRuntime CRD changes |
 | 2026-02-19 | Add README.md with full quickstart walkthrough | End-to-end documentation: control plane setup, GCP credentials, GPU cluster provisioning via dot-kubernetes, inference deployment, validation, and cleanup. Includes LoadBalancer IP wait loop and model readiness poll | Created `README.md` at repo root; validates Phase 3 walkthrough steps |
+| 2026-02-19 | README cleanup: wait for managed resources after cluster deletion | XR deletion completes when composed resources are removed, but managed resources (GKE cluster, node pools) may still be deleting in the cloud. Added `kubectl get managed` poll loop after cluster XR wait to ensure all cloud resources are fully deleted before proceeding | Works across GCP, AWS, and Azure; added `kubectl wait` for LLMInference deletion too |

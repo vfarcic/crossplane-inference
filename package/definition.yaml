@@ -32,15 +32,12 @@ spec:
               providerConfigName:
                 description: Name of the kubernetes.crossplane.io ProviderConfig for the target cluster where Object resources will be created.
                 type: string
+              targetNamespace:
+                description: Namespace on the target cluster where resources will be created. Defaults to the XR's namespace if not set.
+                type: string
             required:
             - model
             - providerConfigName
-          status:
-            type: object
-            properties:
-              ready:
-                description: Whether the inference endpoint is ready.
-                type: string
     additionalPrinterColumns:
     - name: model
       type: string
@@ -48,6 +45,3 @@ spec:
     - name: gpu
       type: integer
       jsonPath: '.spec.gpu'
-    - name: ready
-      type: string
-      jsonPath: '.status.ready'

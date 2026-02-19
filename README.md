@@ -155,7 +155,7 @@ Wait for the model to load (this can take 5+ minutes as the model downloads and 
 ```bash
 while ! curl -s http://qwen.$INGRESS_IP.nip.io/v1/models | grep -q Qwen; do
     echo "Model is not yet ready, waiting..."
-    sleep 10
+    sleep 30
 done
 echo 'Model is ready!'
 ```
@@ -179,6 +179,9 @@ Delete the inference workload:
 
 ```bash
 kubectl delete llminference qwen --namespace inference
+
+kubectl wait llminference qwen --namespace inference \
+    --for=delete --timeout=300s
 ```
 
 Delete the GPU cluster:
@@ -189,6 +192,13 @@ kubectl delete cluster.devopstoolkit.ai inference-small \
 
 kubectl wait cluster.devopstoolkit.ai inference-small \
     --namespace inference --for=delete --timeout=1200s
+
+while kubectl --namespace inference get managed 2>/dev/null | grep -v '^NAME' \
+    | grep -q .; do
+    echo "Managed resources still being deleted..."
+    sleep 30
+done
+echo 'All managed resources deleted.'
 ```
 
 Delete the GCP project (removes all cloud resources):

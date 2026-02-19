@@ -21,6 +21,7 @@ jobs:
           export UP_TOKEN=${{ secrets.UP_TOKEN }}
           export UP_ACCOUNT=${{ secrets.UP_ACCOUNT }}
           export VERSION=$(./semver up release)
+          yq --inplace ".spec.package = \"xpkg.upbound.io/devops-toolkit/dot-inference:$VERSION\"" config.yaml
           devbox run package-publish
       - name: Commit changes
         run: |

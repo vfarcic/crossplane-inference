@@ -9,3 +9,17 @@ spec:
             file: 00-install.yaml
         - assert:
             file: 00-assert.yaml
+        - apply:
+            file: 01-apply.yaml
+        - patch:
+            file: 01-patch.yaml
+        - assert:
+            file: 01-assert.yaml
+      catch:
+        - describe:
+            apiVersion: inference.devopstoolkit.ai/v1alpha1
+            kind: LLMInference
+        - get:
+            apiVersion: kubernetes.m.crossplane.io/v1alpha1
+            kind: Object
+        - events: {}

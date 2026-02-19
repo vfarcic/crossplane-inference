@@ -14,11 +14,10 @@ tasks:
       - helm repo add crossplane-stable https://charts.crossplane.io/stable
       - helm repo update
       - helm upgrade --install crossplane crossplane-stable/crossplane --namespace crossplane-system --create-namespace --wait
-      - for f in providers/*.yaml; do kubectl apply --filename $f --server-side 2>/dev/null || true; done
+      - for f in providers/*.yaml; do [ "$(basename $f)" = "dot-kubernetes.yaml" ] && continue; kubectl apply --filename $f --server-side 2>/dev/null || true; done
       - sleep 60
       - kubectl wait --for=condition=healthy provider.pkg.crossplane.io --all --timeout={{.TIMEOUT}}
       - kubectl wait --for=condition=healthy function.pkg.crossplane.io --all --timeout={{.TIMEOUT}}
-      - for f in providers/provider-config-*.yaml; do kubectl apply --filename $f; done
       - kubectl apply --filename https://raw.githubusercontent.com/vllm-project/production-stack/main/operator/config/crd/bases/production-stack.vllm.ai_vllmruntimes.yaml
 
   cluster-destroy:
@@ -70,6 +69,8 @@ tasks:
 
   test:
     desc: Creates cluster, generates package, runs tests, destroys cluster.
+    env:
+      KUBECONFIG: ./kubeconfig.yaml
     cmds:
       - task: cluster-create
       - task: package-generate-apply

@@ -1,0 +1,6 @@
+apiVersion: inference.devopstoolkit.ai/v1alpha1
+kind: LLMInference
+metadata:
+  name: test-qwen
+spec:
+  targetNamespace: target-ns

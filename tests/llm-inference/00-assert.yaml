@@ -8,10 +8,13 @@ spec:
   gpu: 1
   ingressHost: qwen.127.0.0.1.nip.io
   providerConfigName: incluster
+(status.conditions[?type == 'Ready']):
+- status: "True"
 ---
 apiVersion: kubernetes.m.crossplane.io/v1alpha1
 kind: Object
 metadata:
+  namespace: ($namespace)
   labels:
     crossplane.io/composite: test-qwen
   ownerReferences:
@@ -22,13 +25,14 @@ metadata:
 spec:
   providerConfigRef:
     name: incluster
-    kind: ClusterProviderConfig
+    kind: ProviderConfig
   forProvider:
     manifest:
       apiVersion: production-stack.vllm.ai/v1alpha1
       kind: VLLMRuntime
       metadata:
         name: test-qwen
+        namespace: ($namespace)
       spec:
         model:
           modelURL: Qwen/Qwen2.5-1.5B-Instruct
@@ -48,6 +52,7 @@ spec:
 apiVersion: kubernetes.m.crossplane.io/v1alpha1
 kind: Object
 metadata:
+  namespace: ($namespace)
   labels:
     crossplane.io/composite: test-qwen
   ownerReferences:
@@ -58,13 +63,14 @@ metadata:
 spec:
   providerConfigRef:
     name: incluster
-    kind: ClusterProviderConfig
+    kind: ProviderConfig
   forProvider:
     manifest:
       apiVersion: networking.k8s.io/v1
       kind: Ingress
       metadata:
         name: test-qwen
+        namespace: ($namespace)
       spec:
         rules:
         - host: qwen.127.0.0.1.nip.io
@@ -82,6 +88,7 @@ apiVersion: production-stack.vllm.ai/v1alpha1
 kind: VLLMRuntime
 metadata:
   name: test-qwen
+  namespace: ($namespace)
 spec:
   model:
     modelURL: Qwen/Qwen2.5-1.5B-Instruct
@@ -102,6 +109,7 @@ apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: test-qwen
+  namespace: ($namespace)
 spec:
   rules:
   - host: qwen.127.0.0.1.nip.io

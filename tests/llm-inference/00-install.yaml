@@ -1,3 +1,11 @@
+apiVersion: kubernetes.m.crossplane.io/v1alpha1
+kind: ProviderConfig
+metadata:
+  name: incluster
+spec:
+  credentials:
+    source: InjectedIdentity
+---
 apiVersion: inference.devopstoolkit.ai/v1alpha1
 kind: LLMInference
 metadata:

@@ -31,7 +31,7 @@ Run tests with output capture: `task test-e2e 2>&1 | tee ./tmp/test-output.txt`
 
 ```
 LLMInference XR (namespace-scoped, Crossplane v2 — no claims)
-    → function-python executes inline python/composition.py
+    → function-pythonic executes inline python/composition.py
         → generates Object (VLLMRuntime CR) + Object (Ingress)
             → provider-kubernetes applies Objects to target cluster via ProviderConfig
                 → vLLM Production Stack operator reconciles VLLMRuntime
@@ -41,9 +41,9 @@ LLMInference XR (namespace-scoped, Crossplane v2 — no claims)
 
 - **`package/`** — Crossplane Configuration: `crossplane.yaml` (metadata + deps), `definition.yaml` (XRD), `composition.yaml` (generated, gitignored)
 - **`python/`** — Source of truth for composition logic: `composition.py` (function code) + `composition.yaml.tmpl` (Composition template with `__PYTHON_SCRIPT__` placeholder)
-- **`providers/`** — Provider/function install manifests for local dev cluster (provider-kubernetes, function-python, incluster ProviderConfig)
+- **`providers/`** — Provider/function install manifests for local dev cluster (provider-kubernetes, function-pythonic, incluster ProviderConfig)
 - **`tests/`** — Chainsaw e2e tests: `definition/` (XRD schema assert) and `llm-inference/` (XR → Object → VLLMRuntime + Ingress assert)
-- **`examples/`** — Phase 1 plain manifests (`vllm-*.yaml`) and Phase 2 XR examples (`llm-*.yaml`)
+- **`examples/`** — XR examples (`llm-*.yaml`) and provider config examples
 
 ### Generation Flow
 
@@ -51,14 +51,16 @@ LLMInference XR (namespace-scoped, Crossplane v2 — no claims)
 
 ### Composed Resources
 
-The composition function generates `kubernetes.m.crossplane.io/v1alpha1` Object resources (namespace-scoped). Each Object wraps either a `VLLMRuntime` CR or an `Ingress`, with `providerConfigRef` pointing to a `ClusterProviderConfig` for the target cluster. Manifests inside Objects must include explicit `namespace`.
+The composition function generates `kubernetes.m.crossplane.io/v1alpha1` Object resources (namespace-scoped). Each Object wraps either a `VLLMRuntime` CR or an `Ingress`, with `providerConfigRef` pointing to a `ProviderConfig` (namespace-scoped, created by dot-kubernetes for each target cluster). Manifests inside Objects must include explicit `namespace` (from `targetNamespace` or XR namespace).
 
 ## Critical Details
 
 - **Image**: Must use `lmcache/vllm-openai:v0.3.13` — the vLLM Production Stack operator expects `/opt/venv/bin/vllm` entrypoint which only exists in the lmcache fork
 - **Service port**: Operator creates service on port 80 (not 8000). Ingress routes to port 80
 - **Crossplane v2**: Namespace-scoped XRs directly — no Claims. API version `apiextensions.crossplane.io/v2` for XRD
-- **function-python**: Generic Python engine (`xpkg.crossplane.io/crossplane-contrib/function-python`). Python code runs inline, not as a custom function image. Limited to stdlib + `crossplane.function` SDK
+- **function-pythonic**: Class-based Python engine (`xpkg.upbound.io/crossplane-contrib/function-pythonic`). Python code runs inline via `BaseComposite` class with `compose()` method. Supports `autoReady` for automatic XR readiness propagation
 - **GPU heuristics**: 1 GPU → 2 CPU/8Gi, 8 GPU → 16 CPU/64Gi. Tensor parallelism = GPU count when > 1. `VLLM_WORKER_MULTIPROC_METHOD=spawn` for multi-GPU
 - **Test cluster**: KinD with VLLMRuntime CRD installed (no operator). Tests verify resource creation, not actual vLLM deployment
-- **ProviderConfig**: `ClusterProviderConfig` named `incluster` (InjectedIdentity) at `kubernetes.m.crossplane.io/v1alpha1` for testing. Examples use `gpu-cluster` for remote GPU clusters
+- **ProviderConfig**: `ProviderConfig` named `incluster` (InjectedIdentity) at `kubernetes.m.crossplane.io/v1alpha1` for testing. Examples use `inference-small`/`inference-large` for remote GPU clusters (created by dot-kubernetes)
+- **targetNamespace**: Optional XRD field. Specifies destination namespace on target cluster. Defaults to XR's `metadata.namespace` if not set
+- **config.yaml**: At repo root, version auto-updated by release workflow. `providers/dot-kubernetes.yaml` is the dot-kubernetes Configuration (excluded from cluster-create glob in Taskfile)

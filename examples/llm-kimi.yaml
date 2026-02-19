@@ -6,4 +6,5 @@ spec:
   model: moonshotai/Kimi-K2.5
   gpu: 8
   ingressHost: kimi.127.0.0.1.nip.io
-  providerConfigName: gpu-cluster
+  providerConfigName: inference-large
+  targetNamespace: production

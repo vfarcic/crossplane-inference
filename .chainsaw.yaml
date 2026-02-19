@@ -10,7 +10,7 @@ spec:
     propagation: Foreground
   timeouts:
     apply: 30s
-    assert: 30s
+    assert: 1m0s
     cleanup: 1m0s
     delete: 5m0s
     error: 2m0s

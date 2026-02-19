@@ -1,0 +1,6 @@
+apiVersion: pkg.crossplane.io/v1
+kind: Configuration
+metadata:
+  name: dot-inference
+spec:
+  package: xpkg.upbound.io/devops-toolkit/dot-inference:v0.1.1

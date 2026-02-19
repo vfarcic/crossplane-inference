@@ -1,101 +1,53 @@
-from crossplane.function.proto.v1 import run_function_pb2 as fnv1
-from crossplane.function import response
+class Composite(BaseComposite):
+    def compose(self):
+        model = str(self.spec.model)
+        gpu = int(self.spec.gpu) if self.spec.gpu else 1
+        ingress_host = str(self.spec.ingressHost) if self.spec.ingressHost else ""
+        provider_config_name = str(self.spec.providerConfigName)
+        name = str(self.metadata.name)
+        namespace = str(self.spec.targetNamespace) if self.spec.targetNamespace else str(self.metadata.namespace)
 
+        # Derive compute resources from GPU count (2 CPU / 8Gi per GPU)
+        cpu = str(2 * gpu)
+        memory = "{}Gi".format(8 * gpu)
 
-def compose(req: fnv1.RunFunctionRequest, rsp: fnv1.RunFunctionResponse):
-    oxr = req.observed.composite.resource
+        # Object wrapping VLLMRuntime CR
+        vllm = self.resources.vllm_runtime('Object', 'kubernetes.m.crossplane.io/v1alpha1')
+        vllm.spec.forProvider.manifest.apiVersion = 'production-stack.vllm.ai/v1alpha1'
+        vllm.spec.forProvider.manifest.kind = 'VLLMRuntime'
+        vllm.spec.forProvider.manifest.metadata.name = name
+        vllm.spec.forProvider.manifest.metadata.namespace = namespace
+        vllm.spec.forProvider.manifest.spec.model.modelURL = model
+        vllm.spec.forProvider.manifest.spec.model.dtype = 'auto'
+        vllm.spec.forProvider.manifest.spec.vllmConfig.gpuMemoryUtilization = '0.9'
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.image.registry = 'docker.io'
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.image.name = 'lmcache/vllm-openai:v0.3.13'
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.replicas = 1
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.resources.cpu = cpu
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.resources.memory = memory
+        vllm.spec.forProvider.manifest.spec.deploymentConfig.resources.gpu = str(gpu)
+        vllm.spec.providerConfigRef.name = provider_config_name
+        vllm.spec.providerConfigRef.kind = 'ProviderConfig'
 
-    spec = oxr["spec"]
-    model = spec["model"]
-    gpu = int(spec["gpu"]) if "gpu" in spec else 1
-    ingress_host = spec["ingressHost"] if "ingressHost" in spec else ""
-    provider_config_name = spec["providerConfigName"]
-    name = oxr["metadata"]["name"]
-    namespace = oxr["metadata"]["namespace"]
+        # Multi-GPU: enable tensor parallelism and spawn worker method
+        if gpu > 1:
+            vllm.spec.forProvider.manifest.spec.vllmConfig.tensorParallelSize = gpu
+            vllm.spec.forProvider.manifest.spec.vllmConfig.env[0].name = 'VLLM_WORKER_MULTIPROC_METHOD'
+            vllm.spec.forProvider.manifest.spec.vllmConfig.env[0].value = 'spawn'
 
-    # Derive compute resources from GPU count (2 CPU / 8Gi per GPU)
-    cpu = str(2 * gpu)
-    memory = "{}Gi".format(8 * gpu)
+        # Conditionally generate Ingress when ingressHost is set
+        if ingress_host:
+            ing = self.resources.ingress('Object', 'kubernetes.m.crossplane.io/v1alpha1')
+            ing.spec.forProvider.manifest.apiVersion = 'networking.k8s.io/v1'
+            ing.spec.forProvider.manifest.kind = 'Ingress'
+            ing.spec.forProvider.manifest.metadata.name = name
+            ing.spec.forProvider.manifest.metadata.namespace = namespace
+            ing.spec.forProvider.manifest.spec.rules[0].host = ingress_host
+            ing.spec.forProvider.manifest.spec.rules[0].http.paths[0].path = '/'
+            ing.spec.forProvider.manifest.spec.rules[0].http.paths[0].pathType = 'Prefix'
+            ing.spec.forProvider.manifest.spec.rules[0].http.paths[0].backend.service.name = name
+            ing.spec.forProvider.manifest.spec.rules[0].http.paths[0].backend.service.port.number = 80
+            ing.spec.providerConfigRef.name = provider_config_name
+            ing.spec.providerConfigRef.kind = 'ProviderConfig'
 
-    # Build VLLMRuntime spec
-    vllm_spec = {
-        "model": {
-            "modelURL": model,
-            "dtype": "auto",
-        },
-        "vllmConfig": {
-            "gpuMemoryUtilization": "0.9",
-        },
-        "deploymentConfig": {
-            "image": {
-                "registry": "docker.io",
-                "name": "lmcache/vllm-openai:v0.3.13",
-            },
-            "replicas": 1,
-            "resources": {
-                "cpu": cpu,
-                "memory": memory,
-                "gpu": str(gpu),
-            },
-        },
-    }
-
-    # Multi-GPU: enable tensor parallelism and spawn worker method
-    if gpu > 1:
-        vllm_spec["vllmConfig"]["tensorParallelSize"] = gpu
-        vllm_spec["vllmConfig"]["env"] = [
-            {"name": "VLLM_WORKER_MULTIPROC_METHOD", "value": "spawn"},
-        ]
-
-    # Object wrapping VLLMRuntime CR
-    rsp.desired.resources["vllm-runtime"].resource.update({
-        "apiVersion": "kubernetes.m.crossplane.io/v1alpha1",
-        "kind": "Object",
-        "spec": {
-            "forProvider": {
-                "manifest": {
-                    "apiVersion": "production-stack.vllm.ai/v1alpha1",
-                    "kind": "VLLMRuntime",
-                    "metadata": {"name": name, "namespace": namespace},
-                    "spec": vllm_spec,
-                },
-            },
-            "providerConfigRef": {"name": provider_config_name, "kind": "ClusterProviderConfig"},
-        },
-    })
-
-    # Conditionally generate Ingress when ingressHost is set
-    if ingress_host:
-        rsp.desired.resources["ingress"].resource.update({
-            "apiVersion": "kubernetes.m.crossplane.io/v1alpha1",
-            "kind": "Object",
-            "spec": {
-                "forProvider": {
-                    "manifest": {
-                        "apiVersion": "networking.k8s.io/v1",
-                        "kind": "Ingress",
-                        "metadata": {"name": name, "namespace": namespace},
-                        "spec": {
-                            "rules": [{
-                                "host": ingress_host,
-                                "http": {
-                                    "paths": [{
-                                        "path": "/",
-                                        "pathType": "Prefix",
-                                        "backend": {
-                                            "service": {
-                                                "name": name,
-                                                "port": {"number": 80},
-                                            },
-                                        },
-                                    }],
-                                },
-                            }],
-                        },
-                    },
-                },
-                "providerConfigRef": {"name": provider_config_name, "kind": "ClusterProviderConfig"},
-            },
-        })
-
-    response.normal(rsp, "Composed VLLMRuntime for {} with {} GPU(s)".format(model, gpu))
+        self.results.info('Composed', 'Composed VLLMRuntime for {} with {} GPU(s)'.format(model, gpu))

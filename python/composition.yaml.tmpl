@@ -10,9 +10,9 @@ spec:
   pipeline:
   - step: compose-resources
     functionRef:
-      name: crossplane-contrib-function-python
+      name: crossplane-contrib-function-pythonic
     input:
-      apiVersion: python.fn.crossplane.io/v1beta1
-      kind: Script
-      script: |
+      apiVersion: pythonic.fn.crossplane.io/v1alpha1
+      kind: Composite
+      composite: |
         __PYTHON_SCRIPT__

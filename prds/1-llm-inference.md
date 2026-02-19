@@ -41,16 +41,17 @@ spec:
   model: "Qwen/Qwen2.5-1.5B-Instruct"
   gpu: 1
   ingressHost: "qwen.127.0.0.1.nip.io"
-  providerConfigName: "gpu-cluster"
+  providerConfigName: "inference-small"
+  targetNamespace: "dev"
 ```
-That's it. Four fields. The composition function handles everything else — compute sizing, shared memory, tensor parallelism, health probes, env vars, and Ingress routing.
+That's it. Five fields (only `model` and `providerConfigName` are required). The composition function handles everything else — compute sizing, shared memory, tensor parallelism, health probes, env vars, and Ingress routing.
 
 ## Scope
 
 ### In Scope
 - Plain K8s manifests for 3 vLLM deployments (Qwen2.5-1.5B, bge-base-en-v1.5, Kimi K2.5)
 - Ingress resources for external access using nip.io domains (e.g., `qwen.127.0.0.1.nip.io`)
-- Inline Python composition function via `function-python` engine
+- Inline Python composition function via `function-pythonic` engine (migrated from `function-python`)
 - Crossplane XRD defining `LLMInference` API (namespace-scoped, Crossplane v2)
 - Crossplane Composition with embedded Python script
 - Configuration package manifest for Upbound Marketplace
@@ -86,6 +87,7 @@ The XRD deliberately exposes a minimal surface. End-users (developers requesting
 | `gpu` | integer | no | 1 | Number of GPUs |
 | `ingressHost` | string | no | - | Ingress hostname for external access (e.g., `qwen.127.0.0.1.nip.io`) |
 | `providerConfigName` | string | yes | - | Name of the `kubernetes.crossplane.io` ProviderConfig for the target cluster |
+| `targetNamespace` | string | no | XR namespace | Namespace on the target cluster where resources will be created |
 
 ### Composition Function Internals (Derived from Inputs)
 
@@ -110,7 +112,7 @@ The Python composition function generates `kubernetes.m.crossplane.io/v1alpha1` 
 1. **`VLLMRuntime` CR** (`production-stack.vllm.ai/v1alpha1`) — model, GPU, compute resources, vLLM args, env vars, probes. All fields derived from `model` + `gpu` inputs.
 2. **`Ingress`** (`networking.k8s.io/v1`) — conditional, only when `ingressHost` is provided.
 
-Objects use `providerConfigRef` with `kind: ClusterProviderConfig` to target the user-specified cluster. Manifests inside Objects include explicit `namespace` (from the XR) to satisfy provider-kubernetes requirements.
+Objects use `providerConfigRef` with `kind: ProviderConfig` to target the user-specified cluster (dot-kubernetes creates namespace-scoped `ProviderConfig` resources). Manifests inside Objects include explicit `namespace` (from `targetNamespace` or the XR's namespace) to satisfy provider-kubernetes requirements.
 
 ### Composition Function
 
@@ -174,12 +176,30 @@ Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/c
 - [x] Python composition function
 - [x] XRD, Composition, and Configuration manifest
 - [x] Provider package declarations
-- [ ] vLLM Production Stack operator installed on GPU cluster
 - [x] Example XRs for all scenarios
 - [x] Chainsaw e2e tests passing against KinD
 - [x] Published to Upbound Marketplace
 
-### Phase 3: Scale Discussion
+### Phase 2.5: Migrate to function-pythonic
+Rewrite the composition function from `function-python` (raw protobuf) to `function-pythonic` (class-based API with built-in readiness). Existing Chainsaw tests serve as regression validation — outputs must remain identical.
+- [x] Install `function-pythonic` package (`xpkg.upbound.io/crossplane-contrib/function-pythonic`)
+- [x] Rewrite `python/composition.py` using `BaseComposite` class API
+- [x] Update Composition to reference `function-pythonic` instead of `function-python`
+- [x] Update providers/ function manifest
+- [x] Verify XR readiness propagates correctly (autoReady)
+- [x] All Chainsaw e2e tests pass
+- [ ] Publish updated Configuration to Upbound Marketplace
+
+### Phase 3: End-to-End Validation Walkthrough
+Step-by-step documented walkthrough that validates the entire pipeline on real infrastructure. Each step is documented, executed, and verified before moving to the next.
+- [x] Create a Crossplane control plane cluster (KinD + Crossplane + providers)
+- [x] Use crossplane-kubernetes to provision a GPU cluster (GKE)
+- [x] Install vLLM Production Stack operator on the GPU cluster
+- [x] Deploy an inference workload using the dot-inference LLMInference XR
+- [ ] Validate inference endpoint is serving requests
+- [x] Document teardown steps
+
+### Phase 4: Scale Discussion
 - [ ] Discussion: multi-region, multi-cluster, autoscaling, model caching, KV-cache routing, disaggregated prefill-decode, Gateway API Inference Extension, llm-d integration
 
 ## Decision Log
@@ -199,3 +219,20 @@ Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/c
 | 2026-02-18 | Use namespace-scoped Objects (`kubernetes.m.crossplane.io/v1alpha1`) with `ClusterProviderConfig` | Namespace-scoped XRs (Crossplane v2) require namespace-scoped composed resources. Cluster-scoped Objects (`kubernetes.crossplane.io/v1alpha2`) cannot be owned by namespace-scoped XRs. `ClusterProviderConfig` (cluster-scoped) ensures accessibility from any namespace (e.g., random chainsaw test namespaces) | Composition generates `kubernetes.m.crossplane.io/v1alpha1` Objects; `providerConfigRef` includes `kind: ClusterProviderConfig`; manifests include explicit `namespace`; ProviderConfig changed to `ClusterProviderConfig` |
 | 2026-02-18 | Chainsaw Foreground deletion propagation | Without Foreground propagation, namespace deletion races Crossplane resource cleanup — Objects with finalizers block namespace teardown, causing stuck Terminating namespaces | `.chainsaw.yaml` uses `deletion.propagation: Foreground`; delete timeout set to 5m for Crossplane cascade; removed redundant cleanup scripts |
 | 2026-02-18 | GitHub Actions CI/CD + Renovate + semver | Automate testing (on PR) and publishing (on push to main) to match crossplane-kubernetes patterns; Renovate keeps Crossplane providers and devbox packages up to date | Added `release.yaml`, `test.yaml` workflows; `renovate.json` with Crossplane manager; `.semver.yaml` for automated version bumping; devbox scripts mapping to Taskfile tasks |
+| 2026-02-18 | Skip Python unit tests — Chainsaw e2e tests are sufficient | Composition function is ~100 lines of straightforward mapping logic; Chainsaw e2e tests already validate all derived outputs against real Crossplane reconciliation; mocking the protobuf SDK would add fragile test infrastructure for marginal benefit | Removed implicit unit test requirement from Success Criteria; all composition validation via Chainsaw |
+| 2026-02-18 | Add Phase 3: End-to-end validation walkthrough before scale discussion | Validates the entire pipeline on real GPU infrastructure while producing documentation others can follow; catches integration issues that KinD-based tests cannot (operator reconciliation, GPU scheduling, real inference serving) | Added Phase 3 with step-by-step walkthrough tasks; moved vLLM operator install from Phase 2 into Phase 3; Scale Discussion moved to Phase 4 |
+| 2026-02-18 | Remove Phase 1 plain YAML manifests | Phase 1 manifests (`vllm-qwen.yaml`, `vllm-embedding.yaml`, `vllm-kimi.yaml` and their `.md` docs) were exploratory artifacts used to validate the vLLM setup before building the Crossplane Configuration. Now that the Configuration is complete, they are redundant — the XR examples serve the same purpose with less maintenance burden | Deleted 6 files from `examples/`; Phase 1 manifests table in PRD is historical reference only |
+| 2026-02-18 | Move `crossplane-config.yaml` to repo root as `config.yaml` with auto-version-update | Configuration install manifest belongs at repo root (same pattern as crossplane-kubernetes). Version is updated automatically by the release GitHub Actions workflow using `yq` | Created `config.yaml` at repo root; added `yq` version update step to `.github/workflows/release.yaml`; deleted `examples/crossplane-config.yaml` |
+| 2026-02-18 | Provider files moved from `examples/` to `providers/` | Provider install manifests (`provider-kubernetes-incluster.yaml`, `provider-helm-incluster.yaml`) are infrastructure setup, not user-facing examples. Placing them in `providers/` keeps them under Renovate coverage and separates concerns | Moved 2 files; created `providers/dot-kubernetes.yaml` for the dot-kubernetes Configuration; updated Taskfile.yml to exclude `dot-kubernetes.yaml` from cluster-create glob |
+| 2026-02-18 | Provider naming must match dot-kubernetes exactly | dot-kubernetes creates `crossplane-contrib-provider-kubernetes` from `xpkg.crossplane.io/crossplane-contrib/provider-kubernetes`. Using a different name/registry caused two Provider instances and `kubectl wait providers --all` to hang | Changed `providers/provider-kubernetes-incluster.yaml` to use name `crossplane-contrib-provider-kubernetes` and registry `xpkg.crossplane.io/crossplane-contrib/provider-kubernetes` |
+| 2026-02-18 | `ClusterProviderConfig` → `ProviderConfig` for target cluster references | dot-kubernetes creates `ProviderConfig` (namespace-scoped, `kubernetes.m.crossplane.io/v1alpha1`), not `ClusterProviderConfig`. Composition was referencing `ClusterProviderConfig` which doesn't exist | Updated `python/composition.py` providerConfigRef `kind` to `ProviderConfig`; updated tests and `providers/provider-config-incluster.yaml`; corrected PRD Composed Resources section |
+| 2026-02-18 | Add `targetNamespace` optional XRD field | XRs live on the control plane cluster in one namespace, but deployed resources (VLLMRuntime, Ingress) should land in a user-chosen namespace on the target GPU cluster. Without this field, resources would default to the XR's namespace which may not exist on the target cluster | Added `targetNamespace` to XRD (`package/definition.yaml`); composition defaults to `metadata.namespace` if unset; updated all examples; added Chainsaw test step (01-patch + 01-assert) to validate targetNamespace override |
+| 2026-02-18 | Upgrade dot-kubernetes dependency to v2.0.5 | v2.0.3 had a bug where the vllm-stack Helm chart didn't install VLLMRuntime CRD properly on the GPU cluster; fixed in v2.0.4/v2.0.5 | Updated `providers/dot-kubernetes.yaml` to v2.0.5 |
+| 2026-02-18 | Switch from `function-python` to `function-pythonic` | XR readiness (`rsp.desired.composite.ready = fnv1.READY_TRUE`) does not propagate correctly with `function-python`. `function-pythonic` v0.4.0+ has built-in `autoReady`, automatic dependency detection, and a cleaner class-based API. If starting from scratch, pythonic is the better choice — the readiness handling alone justifies it | Rewrite `python/composition.py` to use `BaseComposite` class API; change Function package from `function-python` to `function-pythonic`; existing Chainsaw tests remain unchanged (they assert outputs, not engine internals); added Phase 2.5 milestone |
+| 2026-02-18 | Remove custom `status.ready` field and duplicate printer column from XRD | Crossplane automatically adds `READY` and `SYNCED` printer columns for all XRs. Our custom `ready` printer column (from `.status.ready`) caused a duplicate `READY` column in `kubectl get` output | Removed `status.ready` property and custom printer column from `package/definition.yaml` |
+| 2026-02-18 | Remove `providers/provider-config-incluster.yaml` — ProviderConfig created in test namespace | Since `ProviderConfig` is namespace-scoped, a cluster-wide incluster config is useless — Chainsaw tests run in random namespaces. The test `00-install.yaml` now creates its own `ProviderConfig` in the test namespace | Deleted `providers/provider-config-incluster.yaml`; removed provider-config apply step from Taskfile `cluster-create`; test is self-contained |
+| 2026-02-18 | Increase Chainsaw assert timeout from 30s to 1m | After patching `targetNamespace`, provider-kubernetes needs 30-60s to reconcile Objects and create resources in the new namespace. 30s assert timeout was insufficient | Updated `.chainsaw.yaml` assert timeout to `1m0s` |
+| 2026-02-18 | Add Chainsaw catch block for test diagnostics | Instead of guessing why tests fail, use Chainsaw's `catch` block with `describe`, `get`, and `events` helpers to capture diagnostic info on failure | Added catch block to `tests/llm-inference/chainsaw-test.yaml` |
+| 2026-02-19 | function-pythonic: use dot notation, not `.update()` | `resource.spec.update({...})` creates a field called `update` on `spec`, not a method call. function-pythonic uses dot notation for all field assignment (`vllm.spec.forProvider.manifest.kind = 'VLLMRuntime'`). Array indexing via `[0]` is supported | Rewrote `python/composition.py` using dot notation; all Chainsaw tests pass; `autoReady` resolves the XR readiness issue that was unresolved with function-python |
+| 2026-02-19 | XR readiness is SuccessfulCreate, not model readiness | provider-kubernetes Object default readiness policy is `SuccessfulCreate` — Object is ready when the resource is created, not when the model finishes loading. VLLMRuntime CRD has no `conditions` field for `DeriveFromObject` to check. XR shows Ready before the vLLM pod is operational | Added model readiness poll loop (`curl /v1/models`) to README after `kubectl wait llminference`; true end-to-end readiness requires upstream VLLMRuntime CRD changes |
+| 2026-02-19 | Add README.md with full quickstart walkthrough | End-to-end documentation: control plane setup, GCP credentials, GPU cluster provisioning via dot-kubernetes, inference deployment, validation, and cleanup. Includes LoadBalancer IP wait loop and model readiness poll | Created `README.md` at repo root; validates Phase 3 walkthrough steps |

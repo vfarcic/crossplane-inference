@@ -4,3 +4,4 @@ metadata:
   name: dot-inference
 spec:
   package: xpkg.upbound.io/devops-toolkit/dot-inference:v0.1.1
+

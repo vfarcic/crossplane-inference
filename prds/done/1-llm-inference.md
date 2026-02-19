@@ -117,7 +117,7 @@ Objects use `providerConfigRef` with `kind: ProviderConfig` to target the user-s
 
 ### Composition Function
 
-Inline Python script executed by `function-python` engine (`xpkg.crossplane.io/crossplane-contrib/function-python`). Source lives in `python/composition.py` and is embedded into the Composition YAML via `task package-generate`. Acts as the translation layer between the minimal user-facing API and the underlying vLLM Production Stack + Ingress resources. Key responsibilities:
+Inline Python script executed by `function-pythonic` engine (`xpkg.upbound.io/crossplane-contrib/function-pythonic`). Source lives in `python/composition.py` and is embedded into the Composition YAML via `task package-generate`. Acts as the translation layer between the minimal user-facing API and the underlying vLLM Production Stack + Ingress resources. Key responsibilities:
 - Map `model` + `gpu` to full `VLLMRuntime` spec (compute, parallelism, probes, env vars)
 - Apply sensible defaults and scaling heuristics (more GPUs → more memory, longer probe delays, tensor parallelism enabled)
 - Conditionally inject HuggingFace token for gated models

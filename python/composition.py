@@ -1,7 +1,7 @@
 class Composite(BaseComposite):
     def compose(self):
         model = str(self.spec.model)
-        gpu = int(self.spec.gpu) if self.spec.gpu else 1
+        gpu = int(self.spec.gpu) if self.spec.gpu is not None else 1
         ingress_host = str(self.spec.ingressHost) if self.spec.ingressHost else ""
         provider_config_name = str(self.spec.providerConfigName)
         name = str(self.metadata.name)

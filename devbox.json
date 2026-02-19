@@ -10,7 +10,8 @@
     "go-task@3.48.0",
     "kyverno-chainsaw@0.2.14",
     "python3@3.12.8",
-    "upbound@0.40.3"
+    "upbound@0.40.3",
+    "yq-go@4.52.2"
   ],
   "shell": {
     "init_hook": [

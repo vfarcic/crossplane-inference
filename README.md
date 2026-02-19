@@ -205,6 +205,8 @@ Delete the GCP project (removes all cloud resources):
 
 ```bash
 gcloud projects delete $GCP_PROJECT_ID
+
+rm -f ./gcp-creds.json ./gpu-kubeconfig.yaml
 ```
 
 Delete the control plane cluster:

@@ -133,12 +133,14 @@ KUBECONFIG=gpu-kubeconfig.yaml gcloud container clusters \
     --region us-east1 --project $GCP_PROJECT_ID
 
 export INGRESS_IP=""
+WAIT=0
 while [ -z "$INGRESS_IP" ]; do
     INGRESS_IP=$(KUBECONFIG=gpu-kubeconfig.yaml \
         kubectl get svc -n traefik \
         -l app.kubernetes.io/name=traefik \
         -o jsonpath='{.items[0].status.loadBalancer.ingress[0].ip}' 2>/dev/null)
-    [ -z "$INGRESS_IP" ] && sleep 10
+    [ -z "$INGRESS_IP" ] && sleep 10 && WAIT=$((WAIT+10))
+    [ $WAIT -ge 300 ] && echo "Timed out waiting for Traefik IP" && exit 1
 done
 echo "Traefik IP: $INGRESS_IP"
 
@@ -153,9 +155,12 @@ kubectl wait llminference qwen --namespace inference \
 Wait for the model to load (this can take 5+ minutes as the model downloads and vLLM starts):
 
 ```bash
+WAIT=0
 while ! curl -s http://qwen.$INGRESS_IP.nip.io/v1/models | grep -q Qwen; do
     echo "Model is not yet ready, waiting..."
     sleep 30
+    WAIT=$((WAIT+30))
+    [ $WAIT -ge 1800 ] && echo "Timed out waiting for model (30m)" && exit 1
 done
 echo 'Model is ready!'
 ```

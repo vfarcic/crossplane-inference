@@ -1,7 +1,6 @@
 {
   "$schema": "https://raw.githubusercontent.com/jetify-com/devbox/0.16.0/.schema/devbox.schema.json",
   "packages": [
-    "nushell@0.108.0",
     "kubernetes-helm@3.19.1",
     "git@2.51.2",
     "vals@0.42.6",
@@ -11,7 +10,9 @@
     "kyverno-chainsaw@0.2.14",
     "python3@3.12.8",
     "upbound@0.40.3",
-    "yq-go@4.52.2"
+    "yq-go@4.52.2",
+    "nushell@0.110.0",
+    "awscli2@2.33.2"
   ],
   "shell": {
     "init_hook": [

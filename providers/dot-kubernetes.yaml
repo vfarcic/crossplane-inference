@@ -3,4 +3,4 @@ kind: Configuration
 metadata:
   name: dot-kubernetes
 spec:
-  package: xpkg.upbound.io/devops-toolkit/dot-kubernetes:v2.0.6
+  package: xpkg.upbound.io/devops-toolkit/dot-kubernetes:v2.0.8

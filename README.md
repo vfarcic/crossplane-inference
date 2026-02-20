@@ -127,6 +127,29 @@ kubectl wait cluster.devopstoolkit.ai inference-small \
 
 Get the GPU cluster kubeconfig and Traefik external IP, then update the ingress host in the example:
 
+FIXME: If AWS
+
+```sh
+aws eks update-kubeconfig --name inference-small \
+    --region us-east-1 --kubeconfig gpu-kubeconfig.yaml
+
+export INGRESS_HOSTNAME=""
+WAIT=0
+while [ -z "$INGRESS_HOSTNAME" ]; do
+    INGRESS_HOSTNAME=$(KUBECONFIG=gpu-kubeconfig.yaml \
+        kubectl get svc -n traefik \
+        -l app.kubernetes.io/name=traefik \
+        -o jsonpath='{.items[0].status.loadBalancer.ingress[0].hostname}' 2>/dev/null)
+    [ -z "$INGRESS_HOSTNAME" ] && sleep 10 && WAIT=$((WAIT+10))
+    [ $WAIT -ge 300 ] && echo "Timed out waiting for Traefik hostname" && exit 1
+done
+echo "Traefik Hostname: $INGRESS_HOSTNAME"
+
+export INGRESS_IP=$(dig +short $INGRESS_HOSTNAME | head -1)
+```
+
+FIXME: If Google
+
 ```bash
 KUBECONFIG=gpu-kubeconfig.yaml gcloud container clusters \
     get-credentials inference-small \
@@ -143,6 +166,10 @@ while [ -z "$INGRESS_IP" ]; do
     [ $WAIT -ge 300 ] && echo "Timed out waiting for Traefik IP" && exit 1
 done
 echo "Traefik IP: $INGRESS_IP"
+```
+
+```sh
+cat examples/llm-qwen.yaml
 
 cat examples/llm-qwen.yaml \
     | sed "s/127.0.0.1/$INGRESS_IP/" \

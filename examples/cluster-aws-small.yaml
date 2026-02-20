@@ -1,0 +1,23 @@
+apiVersion: devopstoolkit.ai/v2
+kind: Cluster
+metadata:
+  name: inference-small
+spec:
+  crossplane:
+    compositionSelector:
+      matchLabels:
+        provider: aws
+        cluster: eks
+  parameters:
+    nodeSize: small
+    minNodeCount: 2
+    gpu:
+      enabled: true
+      nodeSize: small
+    apps:
+      traefik:
+        enabled: true
+      nvidia:
+        enabled: true
+      vllm:
+        enabled: true

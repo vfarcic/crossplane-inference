@@ -7,3 +7,4 @@ package/composition.yaml
 *.xpkg
 tmp/
 chainsaw-report.json
+aws-creds.conf

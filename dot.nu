@@ -3,6 +3,7 @@
 source scripts/kubernetes.nu
 source scripts/common.nu
 source scripts/crossplane.nu
+source scripts/ingress.nu
 
 def main [] {}
 

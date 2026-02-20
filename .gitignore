@@ -1,6 +1,5 @@
 .env
-kubeconfig.yaml
-gpu-kubeconfig.yaml
+*kubeconfig*.yaml
 gcp-creds.json
 gke_gcloud_auth_plugin_cache
 package/composition.yaml

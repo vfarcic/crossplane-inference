@@ -48,13 +48,34 @@ def "main setup" [] {
 
 }
 
-def "main destroy" [] {
+def "main destroy" [
+    provider = ""
+] {
 
     kubectl delete llminference qwen --namespace inference
 
     kubectl wait llminference qwen --namespace inference --for=delete --timeout=300s
 
-    main delete ingress traefik --kubeconfig gpu-kubeconfig.yaml
+    if $provider == "aws" {
+
+        main delete ingress traefik --kubeconfig gpu-kubeconfig.yaml
+
+        (
+            let vpc_id = aws ec2 describe-vpcs --region us-east-1
+                --filters "Name=tag:crossplane-name,Values=inference-small"
+                --query 'Vpcs[0].VpcId' --output text
+        )
+
+        (
+            let sg_id = aws ec2 describe-security-groups
+                --region us-east-1
+                --filters $"Name=vpc-id,Values=($vpc_id)" "Name=description,Values=Security group for Kubernetes ELB*"
+                --query 'SecurityGroups[*].GroupId' --output text
+        )
+
+        aws ec2 delete-security-group --region us-east-1 --group-id $sg_id
+
+    }
 
     kubectl delete cluster.devopstoolkit.ai inference-small --namespace inference
 
@@ -66,11 +87,10 @@ def "main destroy" [] {
     }
     print "All managed resources deleted."
 
-    if env.PROVIDER == "google" {
+    if $provider == "google" {
         gcloud projects delete $env.PROJECT_ID
         rm --force gcp-creds.json gpu-kubeconfig.yaml
     }
-
 
     # kind delete cluster --name crossplane-inference
 

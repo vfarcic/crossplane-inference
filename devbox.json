@@ -12,7 +12,8 @@
     "upbound@0.40.3",
     "yq-go@4.52.2",
     "nushell@0.110.0",
-    "awscli2@2.33.2"
+    "awscli2@2.33.2",
+    "jq@1.8.1"
   ],
   "shell": {
     "init_hook": [

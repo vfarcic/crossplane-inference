@@ -54,6 +54,8 @@ def "main destroy" [] {
 
     kubectl wait llminference qwen --namespace inference --for=delete --timeout=300s
 
+    main delete ingress traefik --kubeconfig gpu-kubeconfig.yaml
+
     kubectl delete cluster.devopstoolkit.ai inference-small --namespace inference
 
     kubectl wait cluster.devopstoolkit.ai inference-small --namespace inference --for=delete --timeout=1200s
@@ -70,9 +72,9 @@ def "main destroy" [] {
     }
 
 
-    kind delete cluster --name crossplane-inference
+    # kind delete cluster --name crossplane-inference
 
-    rm --force kubeconfig.yaml
+    rm --force kubeconfig-dot.yaml
 
     main destroy kubernetes kind
 

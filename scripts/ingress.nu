@@ -65,10 +65,16 @@ def --env "main apply ingress" [
 # > main get ingress contour --provider aws
 # > main get ingress nginx --provider kind --env_prefix TEST_
 def "main get ingress" [
-    class = "traefik" # The class of Ingress controller to apply. Available options: traefik, contour, nginx
+    class = "traefik"  # The class of Ingress controller to apply. Available options: traefik, contour, nginx
     --provider: string # The cloud provider. Available options: aws, azure, google, upcloud, kind
     --env_prefix = ""  # Prefix to add to environment variables
+    --kubeconfig = ""  # Path to kubeconfig file (optional, only needed if not using in-cluster config)
+    --output = "all"   # Output format (all, host)
 ] {
+
+    if $kubeconfig != "" {
+        $env.KUBECONFIG = $kubeconfig
+    }
 
     mut service_name = $class
 
@@ -122,7 +128,11 @@ def "main get ingress" [
     $"export ($env_prefix)INGRESS_IP=($ingress_ip)\n" | save --append .env
     $"export ($env_prefix)INGRESS_HOST=($ingress_ip).nip.io\n" | save --append .env
 
-    {ip: $ingress_ip, host: $"($ingress_ip).nip.io", class: $class}
+    if $output == "host" {
+        print $"($ingress_ip).nip.io"
+    } else {
+        {ip: $ingress_ip, host: $"($ingress_ip).nip.io", class: $class}
+    }
 
 }
 
@@ -132,8 +142,13 @@ def "main get ingress" [
 # > main delete ingress contour
 # > main delete ingress traefik
 def --env "main delete ingress" [
-    class = "contour"   # The class of Ingress controller to apply. Available options: traefik, contour, nginx
+    class = "contour"  # The class of Ingress controller to apply. Available options: traefik, contour, nginx
+    --kubeconfig = ""  # Path to kubeconfig file (optional, only needed if not using in-cluster config)
 ] {
+
+    if $kubeconfig != "" {
+        $env.KUBECONFIG = $kubeconfig
+    }
 
     print $"Uninstalling (ansi yellow_bold)Ingress(ansi reset)..."
 

@@ -44,7 +44,7 @@ The VLLMRuntime CRD already supports PVC-based model storage natively via `pvcSt
 
 ## Related PRDs
 
-- [PRD #3: Autoscaling with KEDA](3-autoscaling.md) — caching enables fast scale-up
+- [PRD #9: Gateway Routing and KEDA Autoscaling](gateway-api-keda-inference.md) — caching enables fast scale-up and viable scale-to-zero
 - [PRD #5: KV-Cache Routing and Sharing](5-kv-cache.md) — different cache (runtime state vs model weights) but similar storage patterns
 
 ## Decision Log

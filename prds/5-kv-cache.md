@@ -56,8 +56,7 @@ The VLLMRuntime CRD has an `lmcacheConfig` field for configuring LMCache. The Ga
 
 ## Related PRDs
 
-- [PRD #3: Autoscaling with KEDA](3-autoscaling.md) — multiple replicas are a prerequisite
-- [PRD #4: Gateway API Inference Extension](4-gateway-api-inference.md) — prefix-cache-aware routing
+- [PRD #9: Gateway Routing and KEDA Autoscaling](gateway-api-keda-inference.md) — multiple replicas (KEDA) and prefix-cache-aware routing (Inference Extension)
 - [PRD #7: Disaggregated Inference with llm-d](7-llm-d.md) — KV-cache transfer for P/D disaggregation
 
 ## Decision Log

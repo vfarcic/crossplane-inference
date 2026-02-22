@@ -58,8 +58,7 @@ Current maturity: early production. Primarily Red Hat OpenShift AI users. Strong
 
 ## Related PRDs
 
-- [PRD #3: Autoscaling with KEDA](3-autoscaling.md) — llm-d has its own variant autoscaler
-- [PRD #4: Gateway API Inference Extension](4-gateway-api-inference.md) — llm-d uses GAIE for routing
+- [PRD #9: Gateway Routing and KEDA Autoscaling](gateway-api-keda-inference.md) — llm-d has its own autoscaler variant and uses GAIE for routing
 - [PRD #5: KV-Cache Routing](5-kv-cache.md) — KV-cache transfer is the mechanism enabling P/D disaggregation
 
 ## Decision Log

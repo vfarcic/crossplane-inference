@@ -74,8 +74,7 @@ Each XR independently deploys and reports readiness. There's no coordination bet
 
 ## Related PRDs
 
-- [PRD #3: Autoscaling with KEDA](3-autoscaling.md) — per-cluster autoscaling vs cross-cluster capacity planning
-- [PRD #4: Gateway API Inference Extension](4-gateway-api-inference.md) — multi-cluster gateway support
+- [PRD #9: Gateway Routing and KEDA Autoscaling](gateway-api-keda-inference.md) — per-cluster autoscaling and gateway routing
 - [PRD #7: Disaggregated Inference with llm-d](7-llm-d.md) — llm-d currently targets single-cluster; multi-cluster disaggregation is future work
 
 ## Decision Log

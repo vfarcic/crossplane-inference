@@ -305,51 +305,41 @@
         }
       }
     },
-    "kind@0.31.0": {
-      "last_modified": "2026-01-23T17:20:52Z",
-      "resolved": "github:NixOS/nixpkgs/a1bab9e494f5f4939442a57a58d0449a109593fe#kind",
+    "kind@0.33.0": {
+      "last_modified": "2026-10-20T14:23:57Z",
+      "resolved": "github:NixOS/nixpkgs/5adc50831c259f87faeb09ddf930d43597197473#kind",
       "source": "devbox-search",
-      "version": "0.31.0",
+      "version": "0.33.0",
       "systems": {
         "aarch64-darwin": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/jhrinvskzfygyf1zpqdldrr4s684pqpq-kind-0.31.0",
+              "path": "/nix/store/051lrccsqrh7bcivzyivw71nr45niyxh-kind-0.33.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/jhrinvskzfygyf1zpqdldrr4s684pqpq-kind-0.31.0"
+          "store_path": "/nix/store/051lrccsqrh7bcivzyivw71nr45niyxh-kind-0.33.0"
         },
         "aarch64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/z4c4swmiyk3nrcp7glz773mlkhzay46s-kind-0.31.0",
+              "path": "/nix/store/ga1hplvwisrlkgm5qri888dqki9r3pdh-kind-0.33.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/z4c4swmiyk3nrcp7glz773mlkhzay46s-kind-0.31.0"
-        },
-        "x86_64-darwin": {
-          "outputs": [
-            {
-              "name": "out",
-              "path": "/nix/store/837blpxb5qvcslbm5s770cx8wzhm4wgv-kind-0.31.0",
-              "default": true
-            }
-          ],
-          "store_path": "/nix/store/837blpxb5qvcslbm5s770cx8wzhm4wgv-kind-0.31.0"
+          "store_path": "/nix/store/ga1hplvwisrlkgm5qri888dqki9r3pdh-kind-0.33.0"
         },
         "x86_64-linux": {
           "outputs": [
             {
               "name": "out",
-              "path": "/nix/store/y8w7xm64r76pvdycqjmi7389cv6ilh3g-kind-0.31.0",
+              "path": "/nix/store/ww0dvq6517gia80da4csb7c3nanhmdgq-kind-0.33.0",
               "default": true
             }
           ],
-          "store_path": "/nix/store/y8w7xm64r76pvdycqjmi7389cv6ilh3g-kind-0.31.0"
+          "store_path": "/nix/store/ww0dvq6517gia80da4csb7c3nanhmdgq-kind-0.33.0"
         }
       }
     },
@@ -583,7 +573,7 @@
     },
     "python3@3.12.8": {
       "last_modified": "2025-01-06T03:40:18Z",
-      "plugin_version": "0.0.4",
+      "plugin_version": "0.0.5",
       "resolved": "github:NixOS/nixpkgs/3df3c47c19dc90fec35359e89ffb52b34d2b0e94#python3",
       "source": "devbox-search",
       "version": "3.12.8",
